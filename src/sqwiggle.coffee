@@ -16,7 +16,7 @@ class Sqwiggle extends Adapter
     # for str in strings
     #   @send envelope.user, "@#{envelope.user.name}: #{str}"
 
-  run: =>
+  run: ->
     @lastId = 0
     @locked = false
     @token = process.env.HUBOT_SQWIGGLE_TOKEN or "cli_8765fe17fdccc685e753ccea8e6c3bf9"
@@ -36,7 +36,7 @@ class Sqwiggle extends Adapter
   # Retrieve messages from sqwiggle
   ###################################################################
 
-  poll: =>
+  poll: ->
     return if @locked
     console.log "Polling"
     @locked = true
@@ -52,11 +52,11 @@ class Sqwiggle extends Adapter
         @handleMessage msg for msg in responseJson
       @locked = false
 
-  startPolling:  =>
+  startPolling:  ->
     callback = @poll.bind @
     setInterval callback, 1000
     
-  handleMessage: (msg) =>
+  handleMessage: (msg) ->
     author = 
       id: msg.author.id 
       name: msg.author.name
@@ -72,13 +72,13 @@ class Sqwiggle extends Adapter
   ###################################################################
   # Convenience HTTP Methods for sending data back to Sqwiggle.
   ###################################################################
-  get: (path, callback) =>
+  get: (path, callback) ->
     @request "GET", path, null, callback
 
-  post: (path, body, callback) =>
+  post: (path, body, callback) ->
     @request "POST", path, body, callback
 
-  request: (method, path, body, callback) =>
+  request: (method, path, body, callback) ->
     console.log('request made', path)
 
     #host = "api.Sqwiggle.com"
@@ -133,6 +133,6 @@ class Sqwiggle extends Adapter
 ###################################################################
 # Exports to handle actual usage and unit testing.
 ###################################################################
-exports.use = (robot) =>
+exports.use = (robot) ->
   new Sqwiggle robot
 
