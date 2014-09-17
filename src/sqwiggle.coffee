@@ -7,38 +7,37 @@ class Sqwiggle extends Adapter
   # Override the necesary methods
   ###################################################################
   send: (envelope, strings...) ->
+    console.log("send called")
     console.log(envelope)
 
   reply: (envelope, strings...) ->
+    console.log("reply called")
     console.log(envelope)
     # for str in strings
     #   @send envelope.user, "@#{envelope.user.name}: #{str}"
 
-  run: ->
+  run: =>
     self = @
     @lastId = 0
     @locked = false
-    @parseOptions()
+    @token = process.env.HUBOT_SQWIGGLE_TOKEN or "cli_8765fe17fdccc685e753ccea8e6c3bf9"
+    @name  = process.env.HUBOT_SQWIGGLE_BOTNAME or 'sqwigglebot'
 
-    console.log "Sqwiggle adapter options:", @options
-
-    return console.log "No services token provided to Hubot" unless @options.token
-    return console.log "No team provided to Hubot" unless @options.name
-
-    # Provide our name to Hubot
-    self.robot.name = @options.name
-
-    # Tell Hubot we're connected so it can load scripts
-    console.log "Successfully 'connected' as", self.robot.name
-    self.emit "connected"
+    return console.log "No token provided to bot" unless @token
+    return console.log "No team provided to bot" unless @name
 
     @startPolling()
+
+    console.log "Successfully 'connected' as", @name
+
+    # Tell Hubot we're connected so it can load scripts
+    self.emit "connected"
 
   ###################################################################
   # Retrieve messages from sqwiggle
   ###################################################################
 
-  poll: ->
+  poll: =>
     return if @locked
     console.log "Polling"
     @locked = true
@@ -54,37 +53,32 @@ class Sqwiggle extends Adapter
         @handleMessage msg for msg in responseJson
       @locked = false
 
-  startPolling:  ->
+  startPolling:  =>
     callback = @poll.bind @
     setInterval callback, 1000
     
-  ###################################################################
-  # Filter messages
-  ###################################################################
+  handleMessage: (msg) =>
+    author = 
+      id: msg.author.id 
+      name: msg.author.name
 
-  handleMessage: (msg) ->
-    if msg.text.substring(0, @robot.name.length) == "#{@robot.name}"
-      console.log("message #{msg.id} is for this bot")
-      author =
-        id: msg.author.id 
-        name: msg.author.name 
-      message = new TextMessage(author, msg.text) 
-      message.room = msg.stream_id
-      console.log('receiving')
-      @receive message
-      console.log('message received')
+    message = new TextMessage(author, msg.text) 
+    message.id = msg.id
+    message.room = msg.stream_id
+    @receive(message)
+    console.log('message received')
 
 
   ###################################################################
   # Convenience HTTP Methods for sending data back to Sqwiggle.
   ###################################################################
-  get: (path, callback) ->
+  get: (path, callback) =>
     @request "GET", path, null, callback
 
-  post: (path, body, callback) ->
+  post: (path, body, callback) =>
     @request "POST", path, body, callback
 
-  request: (method, path, body, callback) ->
+  request: (method, path, body, callback) =>
     console.log('request made', path)
     self = @
 
@@ -97,7 +91,7 @@ class Sqwiggle extends Adapter
       agent    : false
       hostname : host
       # port     : 443
-      auth     : "#{@options.token}:X"
+      auth     : "#{@token}:X"
       port     : 3001
       path     : path
       method   : method
@@ -136,20 +130,10 @@ class Sqwiggle extends Adapter
       console.log err.stack
       callback? err
 
-  ###################################################################
-  # Parse out config 
-  ###################################################################
-  
-  parseOptions: ->
-    @options =
-      token         : process.env.HUBOT_SQWIGGLE_TOKEN or "cli_8765fe17fdccc685e753ccea8e6c3bf9"
-      name          : process.env.HUBOT_SQWIGGLE_BOTNAME or 'sqwigglebot'
-
-
   
 ###################################################################
 # Exports to handle actual usage and unit testing.
 ###################################################################
-exports.use = (robot) ->
+exports.use = (robot) =>
   new Sqwiggle robot
 
