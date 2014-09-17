@@ -6,9 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies":{
-    "hubot":"~2.6.4"
-  },
   "keywords": [
     "Sqwiggle",
     "Hubot",

@@ -6,6 +6,7 @@ class Sqwiggle extends Adapter
   ###################################################################
   # Override the necesary methods
   ###################################################################
+
   send: (envelope, strings...) ->
     console.log("send called")
     console.log(envelope)
@@ -17,6 +18,9 @@ class Sqwiggle extends Adapter
     #   @send envelope.user, "@#{envelope.user.name}: #{str}"
 
   run: ->
+    # Tell Hubot we're connected so it can load scripts
+    @emit "connected"
+
     @lastId = 0
     @locked = false
     @token = process.env.HUBOT_SQWIGGLE_TOKEN or "cli_8765fe17fdccc685e753ccea8e6c3bf9"
@@ -25,12 +29,9 @@ class Sqwiggle extends Adapter
     return console.log "No token provided to bot" unless @token
     return console.log "No team provided to bot" unless @name
 
-    @startPolling()
-
     console.log "Successfully 'connected' as", @name
 
-    # Tell Hubot we're connected so it can load scripts
-    @emit "connected"
+    @startPolling()
 
   ###################################################################
   # Retrieve messages from sqwiggle
