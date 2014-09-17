@@ -17,7 +17,6 @@ class Sqwiggle extends Adapter
     #   @send envelope.user, "@#{envelope.user.name}: #{str}"
 
   run: =>
-    self = @
     @lastId = 0
     @locked = false
     @token = process.env.HUBOT_SQWIGGLE_TOKEN or "cli_8765fe17fdccc685e753ccea8e6c3bf9"
@@ -31,7 +30,7 @@ class Sqwiggle extends Adapter
     console.log "Successfully 'connected' as", @name
 
     # Tell Hubot we're connected so it can load scripts
-    self.emit "connected"
+    @emit "connected"
 
   ###################################################################
   # Retrieve messages from sqwiggle
@@ -65,8 +64,9 @@ class Sqwiggle extends Adapter
     message = new TextMessage(author, msg.text) 
     message.id = msg.id
     message.room = msg.stream_id
-    @receive(message)
     console.log('message received')
+    console.log(message)
+    @receive(message)
 
 
   ###################################################################
@@ -80,7 +80,6 @@ class Sqwiggle extends Adapter
 
   request: (method, path, body, callback) =>
     console.log('request made', path)
-    self = @
 
     #host = "api.Sqwiggle.com"
     host = "localhost"
@@ -117,7 +116,7 @@ class Sqwiggle extends Adapter
         callback? null, data
 
         response.on "error", (err) ->
-          self.logError "HTTPS response error:", err
+          console.log "HTTPS response error:", err
           callback? err, null
 
     if method is "POST"
