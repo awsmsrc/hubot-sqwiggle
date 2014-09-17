@@ -11,6 +11,10 @@
     "Hubot",
     "Chat"
   ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/awsmsrc/hubot-sqwiggle.git"
+  },
   "author": "Luke Roberts",
   "license": "BSD-2-Clause"
 }
