@@ -1,0 +1,19 @@
+{
+  "name": "hubot-sqwiggle",
+  "version": "0.0.0",
+  "description": "A hubot adapter for Sqwiggle",
+  "main": "./src/sqwiggle",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies":{
+    "hubot":"~2.6.4"
+  },
+  "keywords": [
+    "Sqwiggle",
+    "Hubot",
+    "Chat"
+  ],
+  "author": "Luke Roberts",
+  "license": "BSD-2-Clause"
+}
