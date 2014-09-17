@@ -1,5 +1,5 @@
 {Robot, Adapter, TextMessage} = require 'hubot'
-http = require 'http'
+https = require 'https'
 
 class Sqwiggle extends Adapter
 
@@ -8,14 +8,17 @@ class Sqwiggle extends Adapter
   ###################################################################
 
   send: (envelope, strings...) ->
-    console.log("send called")
     console.log(envelope)
+    strings.forEach (str) =>
+      console.log(str.length)
+      args = JSON.stringify
+        stream_id  : envelope.room
+        text       : str
+
+      @post "/messages", args
 
   reply: (envelope, strings...) ->
-    console.log("reply called")
-    console.log(envelope)
-    # for str in strings
-    #   @send envelope.user, "@#{envelope.user.name}: #{str}"
+    #TODO
 
   run: ->
     # Tell Hubot we're connected so it can load scripts
@@ -23,7 +26,7 @@ class Sqwiggle extends Adapter
 
     @lastId = 0
     @locked = false
-    @token = process.env.HUBOT_SQWIGGLE_TOKEN or "cli_8765fe17fdccc685e753ccea8e6c3bf9"
+    @token = process.env.HUBOT_SQWIGGLE_TOKEN
     @name  = process.env.HUBOT_SQWIGGLE_BOTNAME or 'sqwigglebot'
 
     return console.log "No token provided to bot" unless @token
@@ -45,6 +48,8 @@ class Sqwiggle extends Adapter
 
     if @lastId > 0
       path += "?after_id=#{@lastId}" 
+    else
+      path += "?limit=1"
 
     @get path, (foo, body) =>
       responseJson = JSON.parse(body)
@@ -65,8 +70,6 @@ class Sqwiggle extends Adapter
     message = new TextMessage(author, msg.text) 
     message.id = msg.id
     message.room = msg.stream_id
-    console.log('message received')
-    console.log(message)
     @receive(message)
 
 
@@ -82,17 +85,16 @@ class Sqwiggle extends Adapter
   request: (method, path, body, callback) ->
     console.log('request made', path)
 
-    #host = "api.Sqwiggle.com"
-    host = "localhost"
+    host = "api.Sqwiggle.com"
+
     headers =
       Host: host
 
     reqOptions =
       agent    : false
       hostname : host
-      # port     : 443
+      port     : 443
       auth     : "#{@token}:X"
-      port     : 3001
       path     : path
       method   : method
       headers  : headers
@@ -102,7 +104,7 @@ class Sqwiggle extends Adapter
       reqOptions.headers["Content-Type"] = "application/json"
       reqOptions.headers["Content-Length"] = body.length
 
-    request = http.request reqOptions, (response) ->
+    request = https.request reqOptions, (response) ->
       data = ""
       response.on "data", (chunk) ->
         data += chunk
@@ -113,7 +115,6 @@ class Sqwiggle extends Adapter
           console.log "Sqwiggle services error: #{response.statusCode}"
           console.log data
 
-        #console.log "HTTPS response:", data
         callback? null, data
 
         response.on "error", (err) ->
@@ -130,7 +131,7 @@ class Sqwiggle extends Adapter
       console.log err.stack
       callback? err
 
-  
+
 ###################################################################
 # Exports to handle actual usage and unit testing.
 ###################################################################
