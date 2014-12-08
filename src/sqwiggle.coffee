@@ -8,14 +8,40 @@ class Sqwiggle extends Adapter
   ###################################################################
 
   send: (envelope, strings...) ->
-    console.log(envelope)
+    logger = @robot.logger
+    logger.debug envelope 
+    envelope.room = @room unless envelope.room
+    messages = []
     strings.forEach (str) =>
-      console.log(str.length)
-      args = JSON.stringify
-        stream_id  : envelope.room
-        text       : str
-
-      @post "/messages", args
+      if str.length < 1024
+        args = JSON.stringify
+          stream_id  : envelope.room
+          text       : str.replace(/[<>]/g, "'")
+        messages.push args
+      else
+        strs = str.match(/(.*?[\n$])/g)
+        strCount = strs.length
+        i = 1
+        s = ""
+        while i < strCount
+          s += strs[i]
+          i++
+          if i < strCount
+            if s.length + strs[i].length < 1024
+              continue
+          args = JSON.stringify
+            stream_id  : envelope.room
+            text       : s.replace(/[<>]/g, "'")
+          if s isnt ""
+            messages.push args
+          s = ""
+    @sendMessages messages
+    
+  sendMessages: (messages) ->
+    message = messages.shift()
+    @post "/messages", message, () =>
+      if messages.length
+        @sendMessages messages
 
   reply: (envelope, strings...) ->
     #TODO
@@ -23,16 +49,19 @@ class Sqwiggle extends Adapter
   run: ->
     # Tell Hubot we're connected so it can load scripts
     @emit "connected"
+    logger = @robot.logger
 
     @lastId = 0
     @locked = false
     @token = process.env.HUBOT_SQWIGGLE_TOKEN
     @name  = process.env.HUBOT_SQWIGGLE_BOTNAME or 'sqwigglebot'
+    @room  = process.env.HUBOT_SQWIGGLE_ROOM
 
-    return console.log "No token provided to bot" unless @token
-    return console.log "No team provided to bot" unless @name
+    return logger.error "No token provided to bot" unless @token
+    return logger.error "No team provided to bot" unless @name
+    return logger.error "No dedault room to bot" unless @room
 
-    console.log "Successfully 'connected' as", @name
+    logger.info "-------- Successfully 'connected' as #{@name} --------"
 
     @startPolling()
 
@@ -42,7 +71,7 @@ class Sqwiggle extends Adapter
 
   poll: ->
     return if @locked
-    console.log "Polling"
+#    @robot.logger.debug "Polling"
     @locked = true
     path = '/messages'
 
@@ -52,7 +81,12 @@ class Sqwiggle extends Adapter
       path += "?limit=1"
 
     @get path, (foo, body) =>
-      responseJson = JSON.parse(body)
+      try
+        responseJson = JSON.parse(body)
+      catch e
+        @robot.logger.error e
+        @locked = false
+        return
       if responseJson.length
         @lastId = responseJson[0].id
         @handleMessage msg for msg in responseJson
@@ -63,6 +97,8 @@ class Sqwiggle extends Adapter
     setInterval callback, 1000
     
   handleMessage: (msg) ->
+    return if msg.author.name is @name
+      
     author = 
       id: msg.author.id 
       name: msg.author.name
@@ -83,7 +119,7 @@ class Sqwiggle extends Adapter
     @request "POST", path, body, callback
 
   request: (method, path, body, callback) ->
-    console.log('request made', path)
+    logger = @robot.logger
 
     host = "api.Sqwiggle.com"
 
@@ -110,15 +146,19 @@ class Sqwiggle extends Adapter
         data += chunk
 
       response.on "end", ->
-        console.log(response.statusCode)
+#        logger.debug response.statusCode
         if response.statusCode >= 400
-          console.log "Sqwiggle services error: #{response.statusCode}"
-          console.log data
+          logger.error "Sqwiggle services error: #{response.statusCode}"
+          logger.error data
 
-        callback? null, data
+        if callback
+          try
+            callback null, data
+          catch err
+            callback err, null
 
         response.on "error", (err) ->
-          console.log "HTTPS response error:", err
+          logger.error "HTTPS response error: #{err}"
           callback? err, null
 
     if method is "POST"
@@ -127,8 +167,8 @@ class Sqwiggle extends Adapter
       request.end()
 
     request.on "error", (err) ->
-      console.log "HTTPS request error:", err
-      console.log err.stack
+      logger.error "HTTPS request error: #{err}"
+      logger.error err.stack
       callback? err
 
 
